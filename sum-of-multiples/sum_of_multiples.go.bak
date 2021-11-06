@@ -1,0 +1,176 @@
+package summultiples
+
+import (
+	"fmt"
+	"sync"
+)
+
+// // SumMultiples returns the total sum of all multiples of a set of numbers, up to limit.
+// func SumMultiples(limit int, divisors ...int) int {
+// 	var factorsUsed = map[int]bool{0: true}
+// 	var total int
+// 	// For each number up to the limit, divide it by each divisor, and if tha
+// 	for number := 1; number < limit; number++ {
+// 		for _, divisor := range divisors {
+
+// 			if divisor != 0 && number%divisor == 0 {
+// 				_, ok := factorsUsed[number]
+// 				if !ok {
+// 					factorsUsed[number] = true
+// 					total += number
+// 				}
+// 			}
+
+// 		}
+// 	}
+// 	return total
+// }
+
+// var wg sync.WaitGroup
+
+// // SumMultiples returns the total sum of all multiples of a set of numbers, up to limit.
+// func SumMultiples(limit int, divisors ...int) int {
+// 	// var factorsUsed = map[int]bool{0: true}
+// 	// var total int
+// 	var factorsUsed = make(chan map[int]bool)
+// 	var total = make(chan int)
+// 	// For each number up to the limit, divide it by each divisor, and if tha
+// 	for number := 1; number < limit; number++ {
+// 		for _, divisor := range divisors {
+
+// 			if divisor != 0 && number%divisor == 0 {
+// 				_, ok := <-factorsUsed[number]
+// 				if !ok {
+// 					factorsUsed[number] = true
+// 					total += number
+// 				}
+// 			}
+
+// 		}
+// 	}
+// 	return total
+// }
+
+// var factorsUsed = make(chan map[int]bool)
+// var total = make(chan int)
+
+// var factorsUsed = map[int]bool{0: true}
+// var total int
+
+// var multiples = make(chan int)
+
+// func checkDivisors(num int, divisors []int) {
+// 	// defer wg.Done()
+// 	defer fmt.Println("wg.Done should have run")
+// 	// fmt.Println("wg.Done deferred")
+// 	fmt.Println("checkDivisors goroutine spawned")
+// 	for _, divisor := range divisors {
+// 		if divisor != 0 && num%divisor == 0 {
+// 			fmt.Println("multiple found: ", num)
+// 			_, ok := factorsUsed[num]
+// 			if !ok {
+// 				fmt.Println("multiple is not in the map: ", num)
+// 				factorsUsed[num] = true
+// 				// total += num
+// 				multiples <- num
+// 				// fmt.Println("total is now: ", total)
+// 			}
+// 		}
+// 	}
+// }
+
+// another attempt with a struct
+
+var wg sync.WaitGroup
+
+type Counter struct {
+	m     sync.Mutex
+	value int
+	seen  map[int]bool
+}
+
+func (c *Counter) CheckAdd(n int) {
+	fmt.Println("CheckAdd started: ", n)
+	defer fmt.Println("CheckAdd done: ", n)
+	// defer wg.Done()
+	c.m.Lock()
+	defer c.m.Unlock()
+	_, ok := c.seen[n]
+	if !ok {
+		fmt.Println("multiple is not in the map: ", n)
+		c.seen[n] = true
+		fmt.Println("value is: ", c.value)
+		c.value += n
+		fmt.Println("value is now: ", c.value)
+	}
+}
+
+func NewCounter() *Counter {
+	var c Counter
+	c.seen = make(map[int]bool)
+	return &c
+}
+
+func SumMultiples(limit int, divisors ...int) int {
+
+	total := NewCounter()
+
+	// var factorsUsed = map[int]bool{0: true}
+	// var total int
+	// var wg sync.WaitGroup
+	// var m sync.RWMutex
+	// multiples := make(chan int)
+	for number := 1; number < limit; number++ {
+		wg.Add(1)
+		fmt.Println("wg.Add run")
+		// go checkDivisors(number, divisors)
+		go func(i int) {
+			defer wg.Done()
+			defer fmt.Println("parent function finished with int: ", i)
+			// checkDivisors(i, divisors)
+			fmt.Println("checkDivisors goroutine spawned")
+			for _, divisor := range divisors {
+				if divisor != 0 && i%divisor == 0 {
+					fmt.Println("multiple found: ", i)
+					total.CheckAdd(i)
+
+					// m.Lock()
+					// defer m.Unlock()
+					// _, ok := factorsUsed[i]
+					// if !ok {
+					// 	fmt.Println("multiple is not in the map: ", i)
+					// 	factorsUsed[i] = true
+					// 	// total += i
+					// 	multiples <- i
+					// 	// fmt.Println("total is now: ", total)
+					// }
+				}
+			}
+		}(number)
+
+	}
+
+	// go func() {
+	wg.Wait()
+	// fmt.Println("!!! wg.Wait() run")
+	// close(multiples)
+	// }()
+
+	// defer fmt.Println("I guess wg.Wait() ran")
+	// for i := 0; i < len(multiples); i++ {
+	// 	fmt.Println("OH MY GOD WE'RE IN THE FINAL LOOP")
+	// 	fmt.Println(<-multiples)
+	// }
+
+	// var btotal int
+	// for multiple := range multiples {
+	// 	fmt.Println("OH MY GOD WE'RE IN THE FINAL LOOP")
+	// 	fmt.Println("adding multiple: ", multiple)
+	// 	btotal += multiple
+	// }
+	// }
+
+	fmt.Println("total value is: ", total.value)
+	return total.value
+	// return total
+}
