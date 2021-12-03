@@ -5,14 +5,6 @@ import (
 	"strconv"
 )
 
-// Decimal, hex, octal, and binary conversion table: https://ascii.cl/conversion.htm
-/*
-I can treat input as decimal, and compare it to decimal. The following work:
-1. 0x7E + 5 = 131 (126 + 5 = 131)
-2. 0x40 == 64: true
-3. If the input number is <= 127, I guess just add it to the output.
-*/
-
 func padLeft(s string, length int, pad string) string {
 	for {
 		if len(s) < length {
@@ -75,22 +67,21 @@ func EncodeVarint(input []uint32) []byte {
 
 func DecodeVarint(input []byte) ([]uint32, error) {
 	var output []uint32
+	var sevenBitBinaries string // constitute the bytes here.
 
-	// for each byte,  remove the prefixes, and keep track of where the stop bit is.
-	// Pull out 7 bit binaries
-	if len(input) == 1 {
-		bs := strconv.FormatUint(uint64(input[0]), 2)
-		if bs[0:1] == "1" && len(bs) == 8 {
+	for _, n := range input {
+
+		// Get the bits.
+		bs := strconv.FormatUint(uint64(n), 2)
+
+		// Check for invalid input. If there is just one item, the first digit is 1, and it's
+		// 8 characters, the input can't possibly be valid.
+		if len(input) == 1 && bs[0:1] == "1" && len(bs) == 8 {
 			return []uint32{}, errors.New("invalid input")
 		}
-	}
-	// error checking. consolidate with below so not parsing multiple times.
 
-	var sevenBitBinaries string
-	for _, n := range input {
-		// No need to convert these.
+		// Any byte with < 127 bits not filtered out already is a lone byte or ends a sequence.
 		if n <= byte(127) && n != 0 {
-			bs := strconv.FormatUint(uint64(n), 2)
 			sevenBitBinaries += bs
 			i, err := strconv.ParseUint(sevenBitBinaries, 2, 0)
 			if err != nil {
@@ -99,7 +90,6 @@ func DecodeVarint(input []byte) ([]uint32, error) {
 			output = append(output, uint32(i))
 			sevenBitBinaries = ""
 		} else {
-			bs := strconv.FormatUint(uint64(n), 2)
 			if bs[0:1] == "1" {
 				sevenBitBinaries += bs[1:]
 			} else {
