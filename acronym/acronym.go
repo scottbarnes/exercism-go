@@ -9,42 +9,38 @@ import (
 	"strings"
 )
 
-func getSplitWords(words string) []string {
-	result := []string{}
-	spaceSplitWords := strings.Split(words, " ")
-
-	for _, word := range spaceSplitWords {
-		if strings.Contains(word, "-") {
-			hyphenSplitWords := strings.Split(word, "-")
-			result = append(result, hyphenSplitWords...)
-		} else {
-			result = append(result, word)
-		}
-	}
-
-	return result
-}
-
-// Abbreviate should have a comment documenting it.
-func Abbreviate(s string) string {
+// RemoveNonAscii removes all non-ascii characters from s.
+// Note: this keeps spaces.
+func removeNonAscii(s string) string {
 	var builder strings.Builder
-
-	cleanWords := strings.ReplaceAll(s, "_", "")
-	splitWords := getSplitWords(cleanWords)
-	titleWords := func() []string {
-		result := []string{}
-		for _, word := range splitWords {
-			result = append(result, strings.ToTitle(word))
+	for _, r := range s {
+		if r == ' ' {
+			builder.WriteRune(r)
 		}
-		return result
-	}()
-
-	for _, v := range titleWords {
-		if len(v) > 0 {
-			firstLetter := v[0]
-			builder.WriteByte(firstLetter)
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			builder.WriteRune(r)
 		}
 	}
 
 	return builder.String()
+}
+
+func createAbbreviation(s []string) string {
+	var builder strings.Builder
+	for _, word := range s {
+		builder.WriteByte(word[0])
+	}
+
+	return builder.String()
+}
+
+// Abbreviate should have a comment documenting it.
+func Abbreviate(s string) string {
+	hyphenSplitWords := strings.Split(s, "-")
+	rejoinedWords := strings.Join(hyphenSplitWords, " ")
+	onlyAscii := removeNonAscii(rejoinedWords)
+	titleWords := strings.ToTitle(onlyAscii)
+	splitWords := strings.Fields(titleWords)
+
+	return createAbbreviation(splitWords)
 }
