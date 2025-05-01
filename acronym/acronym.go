@@ -7,17 +7,14 @@ package acronym
 
 import (
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
-// RemoveNonAscii removes all non-ascii characters from s.
-// Note: this keeps spaces.
-func removeNonAscii(s string) string {
+func getCleanWords(words string) string {
 	var builder strings.Builder
-	for _, r := range s {
-		if r == ' ' {
-			builder.WriteRune(r)
-		}
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+	for _, r := range words {
+		if unicode.IsSpace(r) || unicode.IsLetter(r) {
 			builder.WriteRune(r)
 		}
 	}
@@ -28,7 +25,8 @@ func removeNonAscii(s string) string {
 func createAbbreviation(s []string) string {
 	var builder strings.Builder
 	for _, word := range s {
-		builder.WriteByte(word[0])
+		r, _ := utf8.DecodeRuneInString(word)
+		builder.WriteRune(r)
 	}
 
 	return builder.String()
@@ -36,10 +34,10 @@ func createAbbreviation(s []string) string {
 
 // Abbreviate should have a comment documenting it.
 func Abbreviate(s string) string {
-	hyphenSplitWords := strings.Split(s, "-")
-	rejoinedWords := strings.Join(hyphenSplitWords, " ")
-	onlyAscii := removeNonAscii(rejoinedWords)
-	titleWords := strings.ToTitle(onlyAscii)
+	// A hyphen functions as a space in our acronym scheme.
+	words := strings.ReplaceAll(s, "-", " ")
+	cleanWords := getCleanWords(words)
+	titleWords := strings.ToTitle(cleanWords)
 	splitWords := strings.Fields(titleWords)
 
 	return createAbbreviation(splitWords)
