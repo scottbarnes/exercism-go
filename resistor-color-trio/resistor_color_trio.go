@@ -2,8 +2,7 @@ package resistorcolortrio
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
+	"math"
 )
 
 // Label describes the resistance value given the colors of a resistor.
@@ -23,44 +22,44 @@ var colorMap = map[string]int{
 	"white":  9,
 }
 
-func Label(colors []string) string {
-	firstColor := colorMap[colors[0]]
-	secondColor := colorMap[colors[1]]
-	thirdColor := colorMap[colors[2]] - 1
+type Ohm struct {
+	Value int
+	Unit  string
+}
 
-	// zeros := thirdColor - 1
+var ohms = []Ohm{
+	{1_000_000_000, "gigaohms"},
+	{1_000_000, "megaohms"},
+	{1_000, "kiloohms"},
+}
 
-	zerothPlace := ""
+// Return the combined number. E.g. 3, 3, 0 becomes 33, and 3, 3, 1 becomes 330.
+func getCombinedNumber(first, second, third int) int {
+	return (first*10 + second) * int(math.Pow10(third))
+}
 
-	if thirdColor >= 0 {
-		for i := 0; i <= thirdColor; i++ {
-			zerothPlace += "0"
+// Format the resistance value with the appropriate unit and value.
+func formatResistance(resistence int, ohms []Ohm) string {
+	value := resistence
+	unit := "ohms"
+
+	for _, ohm := range ohms {
+		if resistence >= ohm.Value {
+			unit = ohm.Unit
+			value = resistence / ohm.Value
+			break
 		}
 	}
 
-	fmt.Println(colors, zerothPlace)
+	return fmt.Sprintf("%d %s", value, unit)
+}
 
-	number := fmt.Sprintf("%d%d%s", firstColor, secondColor, zerothPlace)
+func Label(colors []string) string {
+	firstColor := colorMap[colors[0]]
+	secondColor := colorMap[colors[1]]
+	thirdColor := colorMap[colors[2]]
 
-	suffix := "ohms"
-	numInt, _ := strconv.Atoi(number)
-	// Handle conversions
-	if len(number) >= 9 {
-		suffix = "gigaohms"
-		numInt = numInt / 1000000000
-	} else if len(number) >= 7 {
-		suffix = "megaohms"
-		numInt = numInt / 1000000
-	} else if len(number) >= 4 {
-		suffix = "kiloohms"
-		numInt = numInt / 1000
-	}
-	number = strconv.Itoa(numInt)
+	number := getCombinedNumber(firstColor, secondColor, thirdColor)
 
-	// Remove leading 0s.
-	if len(number) >= 2 {
-		number = strings.TrimPrefix(number, "0")
-	}
-
-	return fmt.Sprintf("%s %s", number, suffix)
+	return formatResistance(number, ohms)
 }
